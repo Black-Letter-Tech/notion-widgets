@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Asset Tag Manager</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .valid {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .invalid {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .info {
+            background-color: #cce5ff;
+            color: #004085;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Asset Tag Manager</h2>
+
+    <div class="info">
+        <p><strong>Instructions:</strong></p>
+        <ul>
+            <li>Use the first section to calculate the check digit for an asset tag without it.</li>
+            <li>Use the second section to validate a complete asset tag with the check digit.</li>
+        </ul>
+    </div>
+
+    <!-- Calculate Check Digit Section -->
+    <div class="section">
+        <h3>Calculate Check Digit</h3>
+        <label for="assetTagInput">Asset Tag (without Check Digit):</label>
+        <input type="text" id="assetTagInput" placeholder="e.g., CYD-FRG-RV-0123">
+        <button onclick="calculateCheckDigit()">Calculate Check Digit</button>
+        <div id="checkDigitResult" class="result"></div>
+    </div>
+
+    <!-- Validate Asset Tag Section -->
+    <div class="section">
+        <h3>Validate Asset Tag</h3>
+        <label for="fullAssetTagInput">Full Asset Tag:</label>
+        <input type="text" id="fullAssetTagInput" placeholder="e.g., CYD-FRG-RV-0123-7">
+        <button onclick="validateAssetTag()">Validate</button>
+        <div id="validationResult" class="result"></div>
+    </div>
+</div>
+
+<script>
+    // Function to convert a character to its numeric equivalent
+    function charToNum(char) {
+        if (!isNaN(char)) {
+            return char;
+        } else {
+            return (char.toUpperCase().charCodeAt(0) - 55).toString(); // A=10, B=11, ..., Z=35
+        }
+    }
+
+    // Function to calculate the Luhn checksum
+    function luhnChecksum(assetTag) {
+        // Remove hyphens and convert to numeric string
+        const numericStr = assetTag.replace(/-/g, '').split('').map(char => charToNum(char)).join('');
+
+        let total = 0;
+        const reversedDigits = numericStr.split('').reverse();
+
+        reversedDigits.forEach((char, index) => {
+            let digit = parseInt(char, 10);
+            if (index % 2 === 1) { // Double every second digit
+                digit *= 2;
+                if (digit > 9) {
+                    digit -= 9;
+                }
+            }
+            total += digit;
+        });
+
+        const checkDigit = (10 - (total % 10)) % 10;
+        return { checkDigit, numericStr };
+    }
+
+    // Function to validate the full asset tag
+    function validateAssetTag() {
+        const fullAssetTag = document.getElementById('fullAssetTagInput').value.trim();
+        const parts = fullAssetTag.split('-');
+
+        if (parts.length !== 5) {
+            displayValidationResult("Incorrect Format. Expected format: AAA-BBB-RV-XXXX-C", false);
+            return;
+        }
+
+        const assetTagPart = parts.slice(0, -1).join('-');
+        const providedCheckDigit = parts[4];
+
+        const { checkDigit } = luhnChecksum(assetTagPart);
+        const isValid = (checkDigit.toString() === providedCheckDigit);
+
+        if (isValid) {
+            displayValidationResult("Valid", true);
+        } else {
+            displayValidationResult("Invalid Check Digit", false);
+        }
+    }
+
+    // Function to calculate and display the check digit
+    function calculateCheckDigit() {
+        const assetTag = document.getElementById('assetTagInput').value.trim();
+        if (assetTag === "") {
+            displayCheckDigitResult("Please enter an asset tag.", false);
+            return;
+        }
+
+        const { checkDigit, numericStr } = luhnChecksum(assetTag);
+        displayCheckDigitResult(`The check digit for "${assetTag}" is: ${checkDigit}`, true);
+    }
+
+    // Helper function to display validation results
+    function displayValidationResult(message, isValid) {
+        const resultDiv = document.getElementById('validationResult');
+        resultDiv.textContent = message;
+        if (isValid) {
+            resultDiv.className = 'result valid';
+        } else {
+            resultDiv.className = 'result invalid';
+        }
+    }
+
+    // Helper function to display check digit results
+    function displayCheckDigitResult(message, isSuccess) {
+        const resultDiv = document.getElementById('checkDigitResult');
+        resultDiv.textContent = message;
+        if (isSuccess) {
+            resultDiv.className = 'result valid';
+        } else {
+            resultDiv.className = 'result invalid';
+        }
+    }
+</script>
+
+</body>
+</html>
