@@ -100,94 +100,117 @@
 </div>
 
 <script>
-    // Function to convert a character to its numeric equivalent
-    function charToNum(char) {
-        if (!isNaN(char)) {
-            return char;
-        } else {
-            return (char.toUpperCase().charCodeAt(0) - 55).toString(); // A=10, B=11, ..., Z=35
+  /*
+ * JavaScript implementation of the Luhn algorithm, with calculation and validation functions
+ */
+
+/* charToNum
+ * Convert a character to its numeric equivalent.
+ * For numbers: return as is.
+ * For letters: A=10, B=11, ..., Z=35.
+ */
+function charToNum(char) {
+    if (!isNaN(char)) {
+        return char;
+    } else {
+        return (char.toUpperCase().charCodeAt(0) - 55).toString(); // A=10, B=11, ..., Z=35
+    }
+}
+
+/* luhn_checksum
+ * Implement the Luhn algorithm to calculate the Luhn check digit.
+ * Return the check digit.
+ */
+function luhn_checksum(code) {
+    const numericStr = code.split('').map(char => charToNum(char)).join('');
+    var len = numericStr.length;
+    var parity = len % 2;
+    var sum = 0;
+    for (var i = len - 1; i >= 0; i--) {
+        var d = parseInt(numericStr.charAt(i));
+        if (i % 2 == parity) {
+            d *= 2;
         }
+        if (d > 9) {
+            d -= 9;
+        }
+        sum += d;
+    }
+    return sum % 10;
+}
+
+/* luhn_calculate
+ * Return a full code (including check digit), from the specified partial code (without check digit).
+ */
+function luhn_calculate(partcode) {
+    var checksum = luhn_checksum(partcode + "0");
+    return checksum == 0 ? 0 : 10 - checksum;
+}
+
+/* luhn_validate
+ * Return true if specified code (with check digit) is valid.
+ */
+function luhn_validate(fullcode) {
+    return luhn_checksum(fullcode) == 0;
+}
+
+// Function to validate the full asset tag
+function validateAssetTag() {
+    const fullAssetTag = document.getElementById('fullAssetTagInput').value.trim();
+    const parts = fullAssetTag.split('-');
+
+    if (parts.length !== 5) {
+        displayValidationResult("Incorrect Format. Expected format: AAA-BBB-RV-XXXX-C", false);
+        return;
     }
 
-    // Function to calculate the Luhn checksum
-    function luhnChecksum(assetTag) {
-        // Remove hyphens and convert to numeric string
-        const numericStr = assetTag.replace(/-/g, '').split('').map(char => charToNum(char)).join('');
+    const assetTagPart = parts.slice(0, -1).join('-').replace(/-/g, '');
+    const providedCheckDigit = parts[4];
 
-        let total = 0;
-        const reversedDigits = numericStr.split('').reverse();
+    const isValid = luhn_validate(assetTagPart + providedCheckDigit);
 
-        reversedDigits.forEach((char, index) => {
-            let digit = parseInt(char, 10);
-            if (index % 2 === 1) { // Double every second digit
-                digit *= 2;
-                if (digit > 9) {
-                    digit -= 9;
-                }
-            }
-            total += digit;
-        });
+    if (isValid) {
+        displayValidationResult("Valid", true);
+    } else {
+        displayValidationResult("Invalid Check Digit", false);
+    }
+}
 
-        const checkDigit = (10 - (total % 10)) % 10;
-        return { checkDigit, numericStr };
+// Function to calculate and display the check digit
+function calculateCheckDigit() {
+    const assetTag = document.getElementById('assetTagInput').value.trim();
+    if (assetTag === "") {
+        displayCheckDigitResult("Please enter an asset tag.", false);
+        return;
     }
 
-    // Function to validate the full asset tag
-    function validateAssetTag() {
-        const fullAssetTag = document.getElementById('fullAssetTagInput').value.trim();
-        const parts = fullAssetTag.split('-');
+    const numericStr = assetTag.replace(/-/g, '');
+    const checkDigit = luhn_calculate(numericStr);
+    displayCheckDigitResult(`The check digit for "${assetTag}" is: ${checkDigit}`, true);
+}
 
-        if (parts.length !== 5) {
-            displayValidationResult("Incorrect Format. Expected format: AAA-BBB-RV-XXXX-C", false);
-            return;
-        }
-
-        const assetTagPart = parts.slice(0, -1).join('-');
-        const providedCheckDigit = parts[4];
-
-        const { checkDigit } = luhnChecksum(assetTagPart);
-        const isValid = (checkDigit.toString() === providedCheckDigit);
-
-        if (isValid) {
-            displayValidationResult("Valid", true);
-        } else {
-            displayValidationResult("Invalid Check Digit", false);
-        }
+// Helper function to display validation results
+function displayValidationResult(message, isValid) {
+    const resultDiv = document.getElementById('validationResult');
+    resultDiv.textContent = message;
+    if (isValid) {
+        resultDiv.className = 'result valid';
+    } else {
+        resultDiv.className = 'result invalid';
     }
+}
 
-    // Function to calculate and display the check digit
-    function calculateCheckDigit() {
-        const assetTag = document.getElementById('assetTagInput').value.trim();
-        if (assetTag === "") {
-            displayCheckDigitResult("Please enter an asset tag.", false);
-            return;
-        }
-
-        const { checkDigit, numericStr } = luhnChecksum(assetTag);
-        displayCheckDigitResult(`The check digit for "${assetTag}" is: ${checkDigit}`, true);
+// Helper function to display check digit results
+function displayCheckDigitResult(message, isSuccess) {
+    const resultDiv = document.getElementById('checkDigitResult');
+    resultDiv.textContent = message;
+    if (isSuccess) {
+        resultDiv.className = 'result valid';
+    } else {
+        resultDiv.className = 'result invalid';
     }
+}
 
-    // Helper function to display validation results
-    function displayValidationResult(message, isValid) {
-        const resultDiv = document.getElementById('validationResult');
-        resultDiv.textContent = message;
-        if (isValid) {
-            resultDiv.className = 'result valid';
-        } else {
-            resultDiv.className = 'result invalid';
-        }
-    }
-
-    // Helper function to display check digit results
-    function displayCheckDigitResult(message, isSuccess) {
-        const resultDiv = document.getElementById('checkDigitResult');
-        resultDiv.textContent = message;
-        if (isSuccess) {
-            resultDiv.className = 'result valid';
-        } else {
-            resultDiv.className = 'result invalid';
-        }
-    }
 </script>
 
 </body>
